@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code (개인 설정만 제외. CLAUDE.md와 .claude/skills는 커밋한다)
+.claude/settings.local.json
