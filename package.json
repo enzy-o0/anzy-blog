@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "frontmatter": "tsx scripts/generate-frontmatter.ts",
+    "frontmatter:local": "tsx --env-file=.env.local scripts/generate-frontmatter.ts",
     "verify": "npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {

@@ -184,10 +184,18 @@ const contentHtml = processedContent
 글쓴이는 본문과 `title` / `date`만 쓴다. `description` / `categories` / `tags`는 에이전트가 본문을 읽고 채우고, 결과는 **PR로 올라가 사람이 diff를 보고 머지한다.** main에 자동 커밋하지 않는다 — 검토가 이 파이프라인의 절반이다.
 
 ```bash
-npm run frontmatter              # 비어 있는 필드만 채운다
-npm run frontmatter -- --all     # 이미 있는 값도 다시 생성
-npm run frontmatter -- --dry-run # 파일을 쓰지 않고 결과만 출력
+npm run frontmatter:local                      # 비어 있는 필드만 채운다
+npm run frontmatter:local -- --all             # 이미 있는 값도 다시 생성
+npm run frontmatter:local -- --all --dry-run   # 파일을 쓰지 않고 결과만 출력
 ```
+
+`frontmatter:local`은 `.env.local`에서 키를 읽는다(`.gitignore`에 포함되어 있다). CI는 시크릿을 환경변수로 받으므로 `.env.local` 없이 도는 `npm run frontmatter`를 쓴다.
+
+```bash
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env.local
+```
+
+**`--dry-run`은 "실행 안 함"이 아니라 "저장 안 함"이다.** API는 실제로 호출되고 비용도 나간다. 파일 쓰기만 건너뛴다.
 
 `content/posts/**.md`가 푸시되면 `.github/workflows/frontmatter.yml`이 같은 작업을 하고 PR을 연다.
 
