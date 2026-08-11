@@ -177,9 +177,44 @@ const contentHtml = processedContent
 
 ---
 
-## 앞으로
+---
 
-이 정리는 그 자체가 목적이 아니라, 콘텐츠 파이프라인을 얹기 위한 바닥 고르기였다.
+# 콘텐츠 에이전트
 
-- **빌드타임 콘텐츠 에이전트** — 본문만 쓰면 frontmatter(요약, 태그, 카테고리)를 생성해 PR로 올린다. `lib/schema.ts`가 그대로 모델 출력의 검증 관문이 된다. 사람이 쓰든 모델이 쓰든 같은 스키마를 통과해야 한다는 점이 핵심이다.
+글쓴이는 본문과 `title` / `date`만 쓴다. `description` / `categories` / `tags`는 에이전트가 본문을 읽고 채우고, 결과는 **PR로 올라가 사람이 diff를 보고 머지한다.** main에 자동 커밋하지 않는다 — 검토가 이 파이프라인의 절반이다.
+
+```bash
+npm run frontmatter              # 비어 있는 필드만 채운다
+npm run frontmatter -- --all     # 이미 있는 값도 다시 생성
+npm run frontmatter -- --dry-run # 파일을 쓰지 않고 결과만 출력
+```
+
+`content/posts/**.md`가 푸시되면 `.github/workflows/frontmatter.yml`이 같은 작업을 하고 PR을 연다.
+
+## 설계에서 신경 쓴 것
+
+**스키마가 사람과 모델 모두의 관문이다.** `lib/schema.ts`의 `generatedFrontmatterSchema`는 두 번 쓰인다 — Anthropic API의 structured outputs로 넘겨 응답 형태를 강제하고, 돌아온 값을 검증한다. 그리고 병합 결과는 손으로 쓴 글과 **똑같이** `frontmatterSchema`를 통과해야 한다. 통과하지 못하면 파일을 쓰지 않고, CI에서는 PR도 열리지 않는다.
+
+**모델이 건드릴 수 있는 필드를 좁혔다.**
+
+| 사람이 소유 | 모델이 생성 |
+|---|---|
+| `title`, `date`, `author`, `draft` | `description`, `categories`, `tags` |
+
+저자의 의도이거나 사실인 것은 사람이 쓴다. 본문에서 파생되는 분류 정보만 모델이 채운다. `--all`을 주지 않으면 사람이 이미 써 둔 값도 덮어쓰지 않는다.
+
+**기존 분류 어휘를 프롬프트에 넣는다.** 이걸 넘기지 않으면 모델이 글마다 `nextjs` / `next.js` / `NextJS`를 따로 만들어낸다. 태그는 재사용될 때만 의미가 있어서, 현재 쓰이는 카테고리·태그 목록을 함께 주고 재사용을 요구한다.
+
+**실패를 삼키지 않는다.** `stop_reason`이 `refusal`이거나 `max_tokens`면 그 글은 실패로 기록하고 파일을 쓰지 않는다. 인증 실패는 글마다 재시도할 일이 아니라서 첫 글에서 바로 중단한다. 일부만 실패하면 성공한 것은 남기고 종료 코드 1로 끝낸다.
+
+**모델과 비용.** `claude-opus-5`, `effort: "low"`. 본문에서 분류를 뽑는 단순한 작업이라 깊은 추론이 필요 없다. 호출은 글이 추가·수정될 때만 일어나고, 런타임에는 아무것도 호출하지 않는다 — 블로그 자체는 여전히 정적 빌드다.
+
+## 필요한 설정
+
+- 레포 시크릿 `ANTHROPIC_API_KEY`
+- 워크플로가 PR을 열려면 Settings → Actions → General에서 **Allow GitHub Actions to create and approve pull requests** 활성화
+- 로컬에서는 `ANTHROPIC_API_KEY`를 export하거나 `ant auth login`
+
+## 다음
+
 - **인용 기반 검색** — 포스트를 빌드타임에 임베딩해 두고, 질문에 대해 근거 문단을 함께 제시한다. 근거를 못 찾으면 답하지 않는다.

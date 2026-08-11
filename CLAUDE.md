@@ -9,21 +9,24 @@ Next.js 16 (App Router) / React 19 / Tailwind 4 / unified / zod / TypeScript 5.9
 ## 명령어
 
 ```bash
-npm run dev        # 개발 서버
-npm run verify     # typecheck + lint + build. 커밋 전에 이걸 돌린다
-npm run typecheck  # tsc --noEmit
-npm run lint       # eslint
-npm run build      # 정적 빌드
+npm run dev          # 개발 서버
+npm run verify       # typecheck + lint + build. 커밋 전에 이걸 돌린다
+npm run frontmatter  # 콘텐츠 에이전트 (--all / --dry-run)
+npm run typecheck    # tsc --noEmit
+npm run lint         # eslint
+npm run build        # 정적 빌드
 ```
 
 ## 구조
 
 ```
-app/                    라우팅과 화면 (서버 컴포넌트)
-lib/schema.ts           frontmatter zod 스키마
-lib/posts.ts            파일시스템 포스트 로더
-lib/markdown.ts         마크다운 → HTML 파이프라인
-content/posts/*.md      포스트 본문
+app/                              라우팅과 화면 (서버 컴포넌트)
+lib/schema.ts                     frontmatter zod 스키마 (사람·모델 공통 관문)
+lib/posts.ts                      파일시스템 포스트 로더
+lib/markdown.ts                   마크다운 → HTML 파이프라인
+scripts/generate-frontmatter.ts   콘텐츠 에이전트
+.github/workflows/frontmatter.yml 에이전트를 돌려 PR을 여는 워크플로
+content/posts/*.md                포스트 본문
 ```
 
 ## 이 저장소의 규칙
@@ -50,7 +53,12 @@ content/posts/*.md      포스트 본문
 본문에는 **무엇을 바꿨는지보다 원래 뭐가 문제였는지**를 적는다.
 이 저장소의 커밋 로그는 개발일지의 재료로 쓰인다. diff를 읽으면 알 수 있는 내용은 생략하고, diff에 안 남는 이유를 남긴다.
 
-## 앞으로
+## 콘텐츠 에이전트
 
-`lib/schema.ts`는 이후 콘텐츠 에이전트가 생성한 frontmatter의 검증 관문으로 재사용된다.
-사람이 쓰든 모델이 쓰든 같은 스키마를 통과해야 한다는 것이 설계의 핵심이라, 스키마를 느슨하게 만들지 않는다.
+`scripts/generate-frontmatter.ts`가 본문을 읽고 `description` / `categories` / `tags`를 채운다.
+
+**모델 출력을 신뢰하지 않는다.** `lib/schema.ts`의 `generatedFrontmatterSchema`가 structured outputs로 응답 형태를 강제하고, 병합 결과는 사람이 쓴 글과 똑같이 `frontmatterSchema`를 통과해야 한다. **검증을 우회하거나 통과시키려고 스키마를 느슨하게 만들지 않는다** — 이게 설계의 핵심이다.
+
+**모델이 건드리는 필드를 넓히지 않는다.** `title` / `date` / `author` / `draft`는 사람 소유다. 저자의 의도이거나 사실인 것을 모델이 지어내게 두지 않는다.
+
+**결과는 PR로 올라간다.** main에 자동 커밋하는 방향으로 바꾸지 않는다. 사람의 검토가 파이프라인의 절반이다.
