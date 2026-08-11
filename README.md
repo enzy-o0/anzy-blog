@@ -183,25 +183,54 @@ const contentHtml = processedContent
 
 글쓴이는 본문과 `title` / `date`만 쓴다. `description` / `categories` / `tags`는 에이전트가 본문을 읽고 채우고, 결과는 **PR로 올라가 사람이 diff를 보고 머지한다.** main에 자동 커밋하지 않는다 — 검토가 이 파이프라인의 절반이다.
 
-```bash
-npm run frontmatter:local                      # 비어 있는 필드만 채운다
-npm run frontmatter:local -- --all             # 이미 있는 값도 다시 생성
-npm run frontmatter:local -- --all --dry-run   # 파일을 쓰지 않고 결과만 출력
+## 세 가지 모드
+
+이 스크립트가 하는 일 중 LLM 호출은 일부일 뿐이다.
+
+```
+대상 탐색 → 어휘 수집 → 프롬프트 조립 → [LLM] → 스키마 검증 → 병합 → 파일 쓰기
+                                       ↑ 여기만 provider에 묶인다
 ```
 
-`frontmatter:local`은 `.env.local`에서 키를 읽는다(`.gitignore`에 포함되어 있다). CI는 시크릿을 환경변수로 받으므로 `.env.local` 없이 도는 `npm run frontmatter`를 쓴다.
+그래서 LLM 앞뒤를 잘라 세 모드로 나눴다. **무엇이 필드를 채우든 — 사람이든, 대화형 코딩 에이전트든, API든 — 통과해야 할 관문은 같다.**
+
+| 모드 | 하는 일 | API 키 |
+|---|---|---|
+| `--plan` | 프롬프트와 JSON Schema를 `.frontmatter/request.md`로 뽑는다 | **불필요** |
+| `--apply` | `.frontmatter/response.json`을 검증·병합·저장한다 | **불필요** |
+| (기본) | 위 둘을 Anthropic API 호출로 한 번에 처리한다 | 필요 |
+
+옵션 `--all`(이미 채워진 값도 다시 생성), `--dry-run`(파일을 쓰지 않음)은 세 모드 모두와 조합된다.
+
+### 키 없이 — 대화형 에이전트에게 맡기기
 
 ```bash
-echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env.local
+npm run frontmatter -- --plan          # .frontmatter/request.md 생성
+# 에이전트에게: "request.md 읽고 response.json 써줘"
+npm run frontmatter -- --apply         # 검증 후 저장
 ```
 
-**`--dry-run`은 "실행 안 함"이 아니라 "저장 안 함"이다.** API는 실제로 호출되고 비용도 나간다. 파일 쓰기만 건너뛴다.
+`request.md`에는 지시사항, 기존 분류 어휘, `z.toJSONSchema()`로 뽑은 JSON Schema, 그리고 대상 글의 본문이 들어간다. 응답이 스키마를 어기면 **어느 글의 어느 필드가 왜 틀렸는지 출력하고 아무것도 저장하지 않는다** — 일부만 반영되는 상태를 만들지 않는다.
+
+### 키가 있을 때 — 한 번에
+
+```bash
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env.local   # .gitignore에 포함되어 있다
+npm run frontmatter:local -- --all --dry-run
+npm run frontmatter:local -- --all
+```
+
+`frontmatter:local`은 `.env.local`에서 키를 읽는다. CI는 시크릿을 환경변수로 받으므로 `npm run frontmatter`를 쓴다.
+
+**`--dry-run`은 "실행 안 함"이 아니라 "저장 안 함"이다.** 기본 모드에서는 API가 실제로 호출되고 비용도 나간다. 파일 쓰기만 건너뛴다.
 
 `content/posts/**.md`가 푸시되면 `.github/workflows/frontmatter.yml`이 같은 작업을 하고 PR을 연다.
 
 ## 설계에서 신경 쓴 것
 
-**스키마가 사람과 모델 모두의 관문이다.** `lib/schema.ts`의 `generatedFrontmatterSchema`는 두 번 쓰인다 — Anthropic API의 structured outputs로 넘겨 응답 형태를 강제하고, 돌아온 값을 검증한다. 그리고 병합 결과는 손으로 쓴 글과 **똑같이** `frontmatterSchema`를 통과해야 한다. 통과하지 못하면 파일을 쓰지 않고, CI에서는 PR도 열리지 않는다.
+**스키마가 사람·에이전트·API 공통의 관문이다.** `lib/schema.ts`의 `generatedFrontmatterSchema`는 세 곳에서 쓰인다 — API 모드에서는 structured outputs로 넘겨 응답 형태를 강제하고, `--plan` 모드에서는 `z.toJSONSchema()`로 변환해 요청 문서에 싣고, 어느 경로로 들어왔든 돌아온 값을 검증한다. 그리고 병합 결과는 손으로 쓴 글과 **똑같이** `frontmatterSchema`를 통과해야 한다. 통과하지 못하면 파일을 쓰지 않고, CI에서는 PR도 열리지 않는다.
+
+"LLM API를 호출했다"가 아니라 **"누가 썼든 같은 관문을 통과한다"가 이 설계의 주장이고, 세 모드가 그걸 코드로 증명한다.**
 
 **모델이 건드릴 수 있는 필드를 좁혔다.**
 
@@ -217,11 +246,11 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env.local
 
 **모델과 비용.** `claude-opus-5`, `effort: "low"`. 본문에서 분류를 뽑는 단순한 작업이라 깊은 추론이 필요 없다. 호출은 글이 추가·수정될 때만 일어나고, 런타임에는 아무것도 호출하지 않는다 — 블로그 자체는 여전히 정적 빌드다.
 
-## 필요한 설정
+## CI
 
-- 레포 시크릿 `ANTHROPIC_API_KEY`
-- 워크플로가 PR을 열려면 Settings → Actions → General에서 **Allow GitHub Actions to create and approve pull requests** 활성화
-- 로컬에서는 `ANTHROPIC_API_KEY`를 export하거나 `ant auth login`
+`content/posts/**.md`가 푸시되면 워크플로가 돈다. **레포 시크릿 `ANTHROPIC_API_KEY`가 없으면 조용히 건너뛴다** — 자동 생성은 선택 경로이고, 키 없이도 로컬 `--plan` / `--apply`로 같은 일을 할 수 있다.
+
+키가 있을 때 PR을 열려면 Settings → Actions → General에서 **Allow GitHub Actions to create and approve pull requests**를 켜야 한다.
 
 ## 다음
 

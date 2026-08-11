@@ -55,7 +55,17 @@ content/posts/*.md                포스트 본문
 
 ## 콘텐츠 에이전트
 
-`scripts/generate-frontmatter.ts`가 본문을 읽고 `description` / `categories` / `tags`를 채운다.
+`scripts/frontmatter.ts`가 본문을 읽고 `description` / `categories` / `tags`를 채운다.
+
+LLM 호출 앞뒤를 잘라 세 모드로 나눠 두었다. **무엇이 필드를 채우든 통과할 관문은 같다.**
+
+| 모드 | 하는 일 | API 키 |
+|---|---|---|
+| `--plan` | 프롬프트와 JSON Schema를 `.frontmatter/request.md`로 뽑음 | 불필요 |
+| `--apply` | `.frontmatter/response.json`을 검증·병합·저장 | 불필요 |
+| (기본) | 위 둘을 Anthropic API로 한 번에 | 필요 |
+
+`if (provider === ...)` 식으로 실행되지 않는 경로를 늘리지 않는다. 세 모드는 전부 실제로 돌아야 한다.
 
 **모델 출력을 신뢰하지 않는다.** `lib/schema.ts`의 `generatedFrontmatterSchema`가 structured outputs로 응답 형태를 강제하고, 병합 결과는 사람이 쓴 글과 똑같이 `frontmatterSchema`를 통과해야 한다. **검증을 우회하거나 통과시키려고 스키마를 느슨하게 만들지 않는다** — 이게 설계의 핵심이다.
 

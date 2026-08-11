@@ -37,12 +37,28 @@ jobs:
 
       - run: npm ci
 
+      # 키가 없으면 조용히 건너뛴다. 자동 생성은 선택 경로이고,
+      # 키 없이도 로컬 --plan / --apply로 같은 일을 할 수 있다.
+      - name: API 키 확인
+        id: key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ANTHROPIC_API_KEY가 없어 자동 생성을 건너뜁니다. 로컬에서 'npm run frontmatter -- --plan' / '--apply'를 쓰세요."
+          fi
+
       - name: frontmatter 생성
+        if: steps.key.outputs.present == 'true'
         run: npm run frontmatter ${{ inputs.all && '-- --all' || '' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: 변경 여부 확인
+        if: steps.key.outputs.present == 'true'
         id: diff
         run: |
           if git diff --quiet -- content/posts; then
