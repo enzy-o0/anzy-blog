@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/*
+ * 코드블록 스타일 소유권 정리.
+ *
+ * highlight.js 테마가 `.hljs`의 배경과 토큰 색을 칠하고,
+ * @tailwindcss/typography의 `prose`도 같은 `pre` 요소를 칠하려 든다.
+ * prose 쪽 배경과 패딩을 비워서 겹치지 않게 하고, 여백은 `.hljs`가 갖게 한다.
+ */
+.prose pre {
+  background-color: transparent;
+  padding: 0;
+}
+
+.prose pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+}
