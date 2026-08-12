@@ -5,6 +5,40 @@ import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
 
+import { withBasePath } from "./base-path";
+
+/** hast 노드 중 우리가 실제로 들여다보는 부분만. unist-util-visit을 들이지 않으려고 직접 정의한다. */
+type HastNode = {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+};
+
+/** basePath를 붙여야 하는 속성. 마크다운이 만들어내는 것만 다룬다. */
+const URL_ATTRIBUTES: Record<string, string> = { img: "src", a: "href" };
+
+/**
+ * 마크다운이 만든 절대경로에 basePath를 붙인다.
+ *
+ * Next의 <Link>/<Image>는 basePath를 알아서 붙이지만, 마크다운에서 나온
+ * raw <img>/<a>는 아니다. 하위 경로(GitHub Pages 프로젝트 페이지)로 배포하면
+ * `![](/foo.png)`가 그대로 남아 404가 난다.
+ */
+function rehypeBasePath() {
+  return (tree: HastNode) => {
+    const visit = (node: HastNode): void => {
+      const attribute = node.tagName ? URL_ATTRIBUTES[node.tagName] : undefined;
+      const value = attribute ? node.properties?.[attribute] : undefined;
+      if (attribute && node.properties && typeof value === "string") {
+        node.properties[attribute] = withBasePath(value);
+      }
+      for (const child of node.children ?? []) visit(child);
+    };
+    visit(tree);
+  };
+}
+
 /**
  * 마크다운 → HTML 파이프라인.
  *
@@ -22,6 +56,7 @@ const processor = unified()
   // detect(자동 언어 추측)는 켜지 않는다. 언어 없는 코드펜스를 엉뚱하게 칠하느니
   // 색을 입히지 않는 편이 낫다. 언어는 마크다운에서 명시한다.
   .use(rehypeHighlight)
+  .use(rehypeBasePath)
   .use(rehypeStringify);
 
 export async function renderMarkdown(markdown: string): Promise<string> {

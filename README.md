@@ -28,6 +28,14 @@ npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
 ```
 
+## 배포
+
+라우트가 전부 정적이라 `output: "export"`로 통째로 내보내고 GitHub Pages에 올린다. 서버 런타임이 없다.
+
+`main`이 갱신되면 `.github/workflows/pages.yml`이 빌드해서 배포한다. 경로 접두사는 `actions/configure-pages`가 알려주는 값을 쓰므로 레포 이름을 하드코딩하지 않는다 — 이름이 바뀌거나 커스텀 도메인을 붙여도 따라간다.
+
+하위 경로 배포에서 한 가지 함정이 있다. Next의 `<Link>`와 `<Image>`는 `basePath`를 자동으로 붙이지만 **마크다운에서 나온 raw `<img>` / `<a>`는 붙지 않는다.** `![](/foo.png)`가 그대로 남아 404가 난다. `lib/markdown.ts`의 `rehypeBasePath`가 AST 단계에서 이 경로들을 다시 쓴다.
+
 ## 구조
 
 ```
