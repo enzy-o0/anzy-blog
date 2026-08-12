@@ -1,24 +1,23 @@
 ---
+title: NextUI Grid
+description: NextUI Grid 설명입니다
+date: "2022-10-13"
 categories:
   - NextJS
   - NextUI
-date: "2022-10-13"
-description: NextUI Grid 설명입니다
-slug: NextJS Design templete NextUI
 tags:
   - nextjs
   - nextui
   - grid
   - react ui library
-title: NextUI Grid
-id: Anzy
+author: Anzy
 ---
 
 ## **Grid**
 
 The layout Grid adapts to screen size and orientation, ensuring consistency across layouts.
 
-```
+```jsx
 import { Grid } from '@nextui-org/react';
 ```
 
@@ -28,7 +27,7 @@ Dynamically scale container width while maintaining spacing.
 
 ![Grid Sample UI](/nextui-grid-sample-img.png)
 
-```
+```jsx
 import { Grid, Card, Text } from "@nextui-org/react";
 export default function App() {
   const MockItem = ({ text }) => {
