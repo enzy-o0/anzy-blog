@@ -1,0 +1,59 @@
+name: pages
+
+# main이 갱신되면 정적 export를 만들어 GitHub Pages에 배포한다.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포는 취소하지 않는다. 진행 중인 배포를 끊으면 사이트가 어중간한 상태로 남을 수 있다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pages 설정 읽기
+        id: pages
+        uses: actions/configure-pages@v5
+
+      # base_path는 configure-pages가 알려준다(프로젝트 페이지면 /<repo>, 커스텀 도메인이면 빈 값).
+      # 레포 이름을 하드코딩하지 않으므로 이름이 바뀌어도 따라간다.
+      - name: 빌드
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
+      # Next의 _next 디렉토리는 밑줄로 시작한다. Jekyll이 끼어들면 통째로 무시되므로 꺼둔다.
+      - run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
