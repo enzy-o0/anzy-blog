@@ -28,7 +28,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# vercel
+# vercel — 2026-08-12에 GitHub Pages로 이전했다. 배포는 .github/workflows/pages.yml이 한다.
+# 이 프로젝트는 더 이상 Vercel을 쓰지 않지만, CLI를 한 번이라도 돌리면 .vercel/이 생기므로
+# 실수로 커밋되지 않게 무시는 유지한다.
 .vercel
 
 # typescript
