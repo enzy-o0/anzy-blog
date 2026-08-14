@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import { getAllPosts, getPost, getPostSlugs } from "@/lib/posts";
+import { getPost, getPostSlugs } from "@/lib/posts";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -30,13 +31,28 @@ export default async function PostPage({ params }: PageProps) {
 
   return (
     <article>
-      <header className="border-b border-slate-200 pb-6 dark:border-slate-800">
+      <Link
+        href="/"
+        className="text-sm text-slate-500 hover:text-slate-900 hover:underline dark:text-slate-400 dark:hover:text-slate-100"
+      >
+        ← 글 목록
+      </Link>
+
+      <header className="mt-6 border-b border-slate-200 pb-6 dark:border-slate-800">
         <h1 className="text-3xl font-semibold tracking-tight">{post.title}</h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">{post.description}</p>
-        <div className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
           <time dateTime={post.date}>{post.date}</time>
-          <span className="mx-2">·</span>
+          <span>·</span>
           <span>{post.author}</span>
+          {post.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800"
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       </header>
 
