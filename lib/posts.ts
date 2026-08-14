@@ -21,7 +21,17 @@ export async function getPostSlugs(): Promise<string[]> {
 
 async function readPost(slug: string): Promise<{ frontmatter: Frontmatter; body: string }> {
   const raw = await fs.readFile(path.join(POSTS_DIR, `${slug}.md`), "utf8");
-  const { data, content } = matter(raw);
+
+  // YAML이 깨지면 gray-matter가 던진다. 그대로 두면 어느 파일인지 모르는 에러가 나온다.
+  // 제목에 따옴표를 쓰다 실제로 밟은 함정이라 파일명을 붙여 다시 던진다.
+  let data: Record<string, unknown>;
+  let content: string;
+  try {
+    ({ data, content } = matter(raw));
+  } catch (error) {
+    const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+    throw new Error(`content/posts/${slug}.md의 frontmatter YAML을 파싱하지 못했습니다: ${message}`);
+  }
 
   const parsed = frontmatterSchema.safeParse(data);
   if (!parsed.success) {
