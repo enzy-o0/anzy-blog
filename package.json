@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "new-post": "tsx scripts/new-post.ts",
     "frontmatter": "tsx scripts/frontmatter.ts",
     "frontmatter:local": "tsx --env-file=.env.local scripts/frontmatter.ts",
     "verify": "npm run typecheck && npm run lint && npm run build"
