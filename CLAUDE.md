@@ -9,13 +9,24 @@ Next.js 16 (App Router) / React 19 / Tailwind 4 / unified / zod / TypeScript 5.9
 ## 명령어
 
 ```bash
-npm run dev          # 개발 서버
-npm run verify       # typecheck + lint + build. 커밋 전에 이걸 돌린다
-npm run frontmatter  # 콘텐츠 에이전트 (--all / --dry-run)
-npm run typecheck    # tsc --noEmit
-npm run lint         # eslint
-npm run build        # 정적 빌드
+npm run dev                    # 개발 서버. draft 글도 /posts/<slug>로 열린다
+npm run new-post -- my-slug    # 새 글 파일 생성 (draft: true)
+npm run verify                 # typecheck + lint + build. 커밋 전에 이걸 돌린다
+npm run frontmatter            # 콘텐츠 에이전트 (--plan / --apply / --all / --dry-run)
+npm run typecheck              # tsc --noEmit
+npm run lint                   # eslint
+npm run build                  # 정적 빌드
 ```
+
+## 글 쓰는 흐름
+
+```
+npm run new-post -- my-slug   →  npm run dev로 미리보며 작성
+→  description 채우기  →  draft: false  →  npm run verify  →  PR
+```
+
+**글쓰기 도구를 만들지 않는다.** 에디터는 VS Code, 미리보기는 dev 서버, CMS는 이 저장소다.
+웹 에디터·관리자 페이지·WYSIWYG·이미지 업로드 UI는 전부 글 안 쓰고 도구 만드는 회피다.
 
 ## 구조
 

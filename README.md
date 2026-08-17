@@ -53,6 +53,13 @@ content/posts/*.md        포스트 본문
 
 글을 추가하려면 `content/posts/`에 `.md` 파일을 하나 놓으면 된다. 코드는 건드리지 않는다.
 
+```bash
+npm run new-post -- my-slug "글 제목"   # draft: true로 뼈대 생성
+npm run dev                             # 미리보며 작성. draft여도 /posts/my-slug로 열린다
+```
+
+에디터는 VS Code, 미리보기는 dev 서버, CMS는 이 저장소다. 웹 에디터나 관리자 페이지는 만들지 않는다.
+
 ### frontmatter
 
 `lib/schema.ts`가 요구하는 형태다. `slug`는 파일 이름에서 나오므로 적지 않는다.
