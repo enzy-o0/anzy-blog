@@ -10,7 +10,7 @@ tags:
   - local-llm
   - evaluation
 author: Anzy
-draft: true
+draft: false
 ---
 
 M2 16GB 맥에서 로컬 LLM을 돌려보고 있다. 모델을 처음부터 학습하는 게 아니라,
